@@ -66,6 +66,7 @@ static int do_readdir( const char *path, void *buffer, fuse_fill_dir_t filler, o
 
 }
 
+
 static int do_read (const char *path, char *buffer, size_t size, off_t off, struct fuse_file_info *fi){
   struct stat *st;
   do_getattr(path, st);
