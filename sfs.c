@@ -10,20 +10,13 @@
 #include <stdlib.h>
 #include <dirent.h>
 
+#include "sfs.h"
+
+
 static int do_getattr( const char *path, struct stat *st )
 {
 	printf( "[getattr] Called\n" );
 	printf( "\tAttributes of %s requested\n", path );
-	
-	// GNU's definitions of the attributes (http://www.gnu.org/software/libc/manual/html_node/Attribute-Meanings.html):
-	// 		st_uid: 	The user ID of the file’s owner.
-	//		st_gid: 	The group ID of the file.
-	//		st_atime: 	This is the last access time for the file.
-	//		st_mtime: 	This is the time of the last modification to the contents of the file.
-	//		st_mode: 	Specifies the mode of the file. This includes file type information (see Testing File Type) and the file permission bits (see Permission Bits).
-	//		st_nlink: 	The number of hard links to the file. This count keeps track of how many directories have entries for this file. If the count is ever decremented to zero, then the file itself is discarded as soon 
-	//						as no process still holds it open. Symbolic links are not counted in the total.
-	//		st_size:	This specifies the size of a regular file in bytes. For files that are really devices this field isn’t usually meaningful. For symbolic links this specifies the length of the file name the link refers to.
 	
 	st->st_uid = getuid(); // The owner of the file/directory is the user who mounted the filesystem
 	st->st_gid = getgid(); // The group of the file/directory is the same as the group of the user who mounted the filesystem
@@ -48,22 +41,15 @@ static int do_getattr( const char *path, struct stat *st )
 static int do_readdir( const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi ){
   printf("\nReading the directory  %s\n", path);
 
-  DIR *dir;
-  struct dirent *entry;
-  struct stat *st;
+  if(strcmp(path, "/") != 0)
+    return -ENOENT;
   
-  if((dir = opendir(path))!=NULL){
-      while((entry = readdir(dir)) == 0){
-        do_getattr(entry->d_name, st);
-        filler(buffer, entry->d_name, st, 0, FUSE_FILL_DIR_PLUS);
-        printf("%s\n", entry->d_name);
-      }
-  return 0;
+  int i;
+
+  for(i=2; dir_entries[i] != -1;i++){
+    filler(buffer, dir_entries[i]->file_name, NULL, 0, 0);
   }
-
-  else
-    return -1;
-
+  return 0;
 }
 
 
@@ -73,20 +59,41 @@ static int do_read (const char *path, char *buffer, size_t size, off_t off, stru
   int fd, restat;
 
   if(st->st_mode == S_IFDIR)
-    return -1;
+    return -ENOENT;
   else{
-    if((fd = open(path, O_RDONLY))<0)
-      return -1;
-    
-    else{
-      lseek(fd, off, 0);
-      fi->fh = fd;
-      while((restat = read(fd, buffer, size))>0);
-      buffer[size] = 0x00;
-      return strlen(buffer) - off;
+    printf("Read operation...\n");
+
+    int size = sizeof(dir_entries)/sizeof(dir_entries[0]);
+    int i;
+
+    for(i=0; i<size; i++){
+      if(strcmp(path, dir_entries[i]->file_name) == 0){
+        //TODO : read the data from the file
+        if(dir_entries > 1){
+          struct inode *inode_entry = inode_entries[dir_entries[i]->inode_num];
+          
+          char* content = malloc((inode_entry->blks_in_use * BLK_SIZE)+1);
+
+          int offset = 0, i;
+
+          for(i=0; i<inode_entry->blks_in_use; i++){
+            memcpy(&content[offset], inode_entry->block_addrs[i], BLK_SIZE); //not sure if it works
+            offset+=BLK_SIZE;
+          }
+
+          memcpy(buffer, content+off, size);
+
+          return strlen(content-off);
+
+        }
+      }
+    }
+    return -ENOENT;
+
+
     }
   }
-}
+
 
 
 static struct fuse_operations operations = {
