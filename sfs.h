@@ -3,6 +3,8 @@
 #define BLKS_PER_INODE 5
 #define BLK_SIZE 1024
 
+
+
 //inode_num : keep positive numbers for files/directories
 //            keep -1 for end of dir_entries
 //            0 - '.' (default directory entry)

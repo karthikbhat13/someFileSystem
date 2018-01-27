@@ -2,6 +2,7 @@
 #define FUSE_USE_VERSION 30
 
 #include <fuse.h>
+#include <fuse_common.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -12,6 +13,14 @@
 
 #include "sfs.h"
 
+
+static char* storage = calloc(1000000);
+
+{
+  storage[free] = (void) inode;
+  
+ 
+}
 
 static int do_getattr( const char *path, struct stat *st )
 {
@@ -50,6 +59,11 @@ static int do_readdir( const char *path, void *buffer, fuse_fill_dir_t filler, o
     filler(buffer, dir_entries[i]->file_name, NULL, 0, 0);
   }
   return 0;
+  
+}
+
+static int do_mkdir(){
+
 }
 
 
@@ -83,17 +97,61 @@ static int do_read (const char *path, char *buffer, size_t size, off_t off, stru
 
           memcpy(buffer, content+off, size);
 
-          return strlen(content-off);
+          return strlen(content)-off;
 
         }
       }
     }
     return -ENOENT;
-
-
     }
   }
 
+static int do_open(const char *path, struct fuse_file_info *fi){
+  
+  if(strcmp(path, "/") == 0)
+    return -ENOENT;
+  
+  int i;
+
+      
+  if((fi->flags && O_ACCMODE) == O_RDONLY)
+    return -EACCESS;
+  if((fi->flags && O_ACCMODE) == O_CREAT){
+    do_mknod(path, 0644, 0);
+    return -EACCESS;
+  }
+  
+  return 0;
+}
+
+ 
+
+static int do_write(const char *path, const char *buffer, size_t size, off_t off, struct fuse_file_info *fi){
+  struct stat *st;
+  do_getattr(path, st);
+  int fd, restat;
+
+  if(st->st_mode == S_IFDIR)
+    return -ENOENT;
+  else{
+    printf("Writing to a file")
+    
+    int size = sizeof(dir_entries)/sizeof(dir_entries[0]);
+    int i;
+
+    for(i=0; i<size; i++){
+      if(strcmp(path, dir_entries[i]->file_name) == 0){
+        struct inode i = inode_entries[dir_entries[i]->inode_num];
+        int offset = 0, i;
+
+        for(i=0; i<inode_entry->blks_in_use; i++){
+            memcpy( inode_entry->block_addrs[i], &buf[offset], BLK_SIZE); //not sure if it works
+            offset+=BLK_SIZE;
+          }
+      return strlen(buf) - off;
+  }
+  return -ENOENT;
+}
 
 
 static struct fuse_operations operations = {
