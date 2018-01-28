@@ -1,7 +1,13 @@
+#ifndef SFS_H
+#define SFS_H
 
-#define MAX_LEN 32
+#define IN_MEM_STORE 0
+#define DISK_STORE 1
+
+#define MAX_LEN 256
 #define BLKS_PER_INODE 5
 #define BLK_SIZE 1024
+#define NUM_OF_BLKS 1048576
 
 
 
@@ -9,13 +15,15 @@
 //            keep -1 for end of dir_entries
 //            0 - '.' (default directory entry)
 //            1 - '..' (default directore entry)
-struct dir_entry{
+struct file_entry{
     int inode_num;
     char file_name[MAX_LEN];
+    struct file_entry **all_files;
+    
 };
 
 
-struct dir_entry **dir_entries; //static allocation: an option.
+struct file_entry **file_entries; //static allocation: an option.
 
 
 enum FILE_TYPE {
@@ -41,5 +49,7 @@ struct inode{
     //int first_ind_blk_addr;  address of indirect blocks
     //int second_ind_blk_addr;
 };
+
+//size is 8 bytes
 
 struct inode **inode_entries;  //static allocation: an option.
