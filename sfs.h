@@ -1,5 +1,6 @@
 #ifndef SFS_H
 #define SFS_H
+#endif
 
 #define IN_MEM_STORE 0
 #define DISK_STORE 1

@@ -18,7 +18,7 @@ char *storage;
 int storage_fd;
 static int inode_counter = 0;
 
-int create_inode (struct inode * inode, FILE_TYPE ftype ){
+int create_inode (struct inode * inode, enum FILE_TYPE ftype ){
 
   inode -> file_type = ftype;
   inode -> access_permission = 0777;
@@ -36,24 +36,23 @@ int create_inode (struct inode * inode, FILE_TYPE ftype ){
 int create_file_entry (struct file_entry * fentry, const char * fname){
 
 fentry -> inode_num = inode_counter = 0;
-strcpy (fentry -> name, fname)
-fentry -> all_files = (int **)malloc(sizeof(int*));
-fentry -> all_files[0] = (int *)malloc(sizeof(int)* 5);
+strcpy (fentry->file_name, fname);
+fentry -> all_files = (struct file_entry **)malloc(sizeof(struct file_entry *));
+fentry -> all_files[0] = (struct file_entry *)malloc(sizeof(struct file_entry)* 5);
 }
 
 
 
-void 
 struct inode *ret_inode(const char *path){
   int i;
-  for(i=0; file_entries[i] != -1; i++){
-    if(strcmp(path, file_entries[i]) == 0){
+  for(i=0; file_entries[i] != NULL; i++){
+    if(strcmp(path, file_entries[i]->file_name) == 0){
       return inode_entries[file_entries[i]->inode_num];
     }
   }
-  return -1;
+  return NULL;
 }
-
+/*
 static int init_storage(){
   #if IN_MEM_STORE
     int fs_size = BLK_SIZE * NUM_OF_BLKS;
@@ -70,7 +69,7 @@ static int init_storage(){
       int abc;
     #endif
 }
-
+*/
 static int do_getattr( const char *path, struct stat *st )
 {
 	printf( "[getattr] Called\n" );
@@ -109,24 +108,27 @@ static int do_readdir( const char *path, void *buffer, fuse_fill_dir_t filler, o
     return -ENOENT;
   
   int i;
-
-  for(i=2; file_entry[i] != -1;i++){
-    filler(buffer, file_entry[i]->file_name, NULL, 0, 0);
+  filler(buffer, ".", NULL, 0, 0);
+  filler(buffer, "..", NULL, 0, 0);
+  /*
+  for(i=2; file_entries[i] != NULL;i++){
+    filler(buffer, file_entries[i]->file_name, NULL, 0, 0);
   }
+  */
   return 0;
   
 }
 
 static int do_mknod(const char *path, mode_t m, dev_t d){
-  if(ret_inode(path) == -1){
+  if(ret_inode(path) == NULL){
     struct inode *inod = malloc(sizeof(struct inode));
     char* temp = path;
     char *dir_name = malloc(32);
     int i = 1;
-    dir_name[0] = "/";
-    if(temp[0] == "/"){
-      temp++
-      while(temp[0] != "/" && temp[0] != NULL){
+    dir_name[0] = '/';
+    if(temp[0] == '/'){
+      temp++;
+      while(temp[0] != '/' && temp[0] != NULL){
         dir_name[i] = temp[0];
         temp++;i++;
       }
@@ -138,29 +140,28 @@ static int do_mknod(const char *path, mode_t m, dev_t d){
       }
 
       
-
+    return 0;
   }
 }
-
+}
 
 static int do_read (const char *path, char *buffer, size_t size, off_t off, struct fuse_file_info *fi){
   struct stat *st;
   do_getattr(path, st);
-  int fd, restat;
 
   if(st->st_mode == S_IFDIR)
     return -ENOENT;
   else{
     printf("Read operation...\n");
 
-    int size = sizeof(file_entry)/sizeof(file_entry[0]);
+    int size = sizeof(file_entries)/sizeof(file_entries[0]);
     int i;
 
     for(i=0; i<size; i++){
-      if(strcmp(path, file_entry[i]->file_name) == 0){
+      if(strcmp(path, file_entries[i]->file_name) == 0){
         //TODO : read the data from the file
-        if(file_entry > 1){
-          struct inode *inode_entry = inode_entries[file_entry[i]->inode_num];
+        if(i > 1){
+          struct inode *inode_entry = inode_entries[file_entries[i]->inode_num];
           
           char* content = malloc((inode_entry->blks_in_use * BLK_SIZE)+1);
 
@@ -212,23 +213,25 @@ static int do_write(const char *path, const char *buffer, size_t size, off_t off
   if(st->st_mode == S_IFDIR)
     return -ENOENT;
   else{
-    printf("Writing to a file")
+    printf("Writing to a file");
     
-    int size = sizeof(file_entry)/sizeof(file_entry[0]);
+    int size = sizeof(file_entries)/sizeof(file_entries[0]);
     int i;
 
     for(i=0; i<size; i++){
-      if(strcmp(path, file_entry[i]->file_name) == 0){
-        struct inode i = inode_entries[file_entry[i]->inode_num];
-        int offset = 0, i;
-
-        for(i=0; i<inode_entry->blks_in_use; i++){
-            memcpy( inode_entry->block_addrs[i], &buf[offset], BLK_SIZE); //not sure if it works
+      if(strcmp(path, file_entries[i]->file_name) == 0){
+        struct inode *inode_entry = inode_entries[file_entries[i]->inode_num];
+        int offset = 0, j;
+        
+        for(j=0; j<inode_entry->blks_in_use; j++){
+            memcpy( inode_entry->block_addrs[j], &buffer[offset], BLK_SIZE); //not sure if it works
             offset+=BLK_SIZE;
           }
-      return strlen(buf) - off;
+      return strlen(buffer) - off;
   }
   return -ENOENT;
+}
+  }
 }
 
 
@@ -238,7 +241,7 @@ static struct fuse_operations operations = {
     .read		= do_read,
 };
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
-	return fuse_main( argc, argv, &operations, NULL );
+	return fuse_main( argc, argv, &operations, NULL);
 }
