@@ -4,7 +4,6 @@
 
 #define IN_MEM_STORE 0
 #define DISK_STORE 1
-
 #define MAX_LEN 256
 #define BLKS_PER_INODE 5
 #define BLK_SIZE 1024
@@ -16,11 +15,14 @@
 //            keep -1 for end of dir_entries
 //            0 - '.' (default directory entry)
 //            1 - '..' (default directore entry)
+
 struct file_entry{
     int inode_num;
     char file_name[MAX_LEN];
     struct file_entry **all_files;
-    
+    int no_files;
+    int max_file_count;
+    //35 bytes
 };
 
 
@@ -53,4 +55,4 @@ struct inode{
 
 //size is 8 bytes
 
-struct inode **inode_entries;  //static allocation: an option.
+struct inode *inode_entries; //static allocation: an option.
