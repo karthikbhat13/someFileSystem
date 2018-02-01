@@ -291,7 +291,6 @@ static int do_getattr( const char *path, struct stat *st )
 	st->st_atime = time( NULL ); // The last "a"ccess of the file/directory is right now
 	st->st_mtime = time( NULL ); // The last "m"odification of the file/directory is right now
 	
-  
   printf("ret_inode %d\n", ret_inode(path));
   if(ret_inode(path) == -1)
     return -ENOENT;

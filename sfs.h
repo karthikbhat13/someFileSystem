@@ -10,7 +10,6 @@
 #define NUM_OF_BLKS 1048576
 
 
-
 //inode_num : keep positive numbers for files/directories
 //            keep -1 for end of dir_entries
 //            0 - '.' (default directory entry)
